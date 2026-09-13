@@ -318,11 +318,20 @@ class FormFlowStep(TemplateFlowStep):
             if field.endswith('_files'):
                 for f in file_list:
                     existing_files = files.getlist(field)
-                    is_dup = any(
-                        getattr(existing_file, 'name', None) == getattr(f, 'name', None) and 
-                        getattr(existing_file, 'size', None) == getattr(f, 'size', None) 
-                        for existing_file in existing_files
-                    )
+                    is_dup = False
+                    for existing_file in existing_files:
+                        if getattr(existing_file, 'name', None) == getattr(f, 'name', None) and \
+                           getattr(existing_file, 'size', None) == getattr(f, 'size', None):
+                            
+                            f_content = f.read()
+                            existing_content = existing_file.read()
+                            f.seek(0)
+                            existing_file.seek(0)
+                            
+                            if f_content == existing_content:
+                                is_dup = True
+                                break
+
                     if not is_dup:
                         files.appendlist(field, f)
             else:
@@ -391,6 +400,13 @@ class FormFlowStep(TemplateFlowStep):
                                 current = [current]
                             existing[field] = current + new_entries
                         else:
+                            old_entry = existing.get(field)
+                            if old_entry and isinstance(old_entry, dict) and 'tmp_name' in old_entry:
+                                try:
+                                    self.file_storage.delete(old_entry['tmp_name'])
+                                except Exception:
+                                    pass
+                            
                             existing[field] = new_entries if len(new_entries) > 1 else new_entries[0]
                             # Inject initial data so the widget can render the "Currently: link"
                             if hasattr(form, 'initial'):
@@ -827,6 +843,13 @@ class ProfileStep(GenericFlowStep, FormFlowStep):
                                 current = [current]
                             existing[field] = current + new_entries
                         else:
+                            old_entry = existing.get(field)
+                            if old_entry and isinstance(old_entry, dict) and 'tmp_name' in old_entry:
+                                try:
+                                    self.file_storage.delete(old_entry['tmp_name'])
+                                except Exception:
+                                    pass
+                            
                             existing[field] = new_entries if len(new_entries) > 1 else new_entries[0]
                             if hasattr(form, 'initial'):
                                 form.initial[field] = SimpleNamespace(
