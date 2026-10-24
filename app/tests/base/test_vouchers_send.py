@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 
 from eventyay.base.models import Event, Organizer, User
 from eventyay.base.services.vouchers import vouchers_send
@@ -26,7 +26,7 @@ def admin_user():
 
 @pytest.mark.django_db
 def test_vouchers_send_preserves_existing_comment(event, admin_user):
-    with scopes_disabled():
+    with scope(organizer=event.organizer, event=event):
         voucher = event.vouchers.create(
             code='WITHCOMMENT',
             comment='Original internal note for speaker.',
@@ -49,7 +49,7 @@ def test_vouchers_send_preserves_existing_comment(event, admin_user):
 
 @pytest.mark.django_db
 def test_vouchers_send_sets_comment_when_previously_empty(event, admin_user):
-    with scopes_disabled():
+    with scope(organizer=event.organizer, event=event):
         voucher = event.vouchers.create(
             code='NOCOMMENT',
             comment='',
@@ -70,7 +70,7 @@ def test_vouchers_send_sets_comment_when_previously_empty(event, admin_user):
 
 @pytest.mark.django_db
 def test_vouchers_send_appends_multiple_sends(event, admin_user):
-    with scopes_disabled():
+    with scope(organizer=event.organizer, event=event):
         voucher = event.vouchers.create(
             code='MULTISEND',
             comment='Initial note.',
